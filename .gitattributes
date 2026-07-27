@@ -1,0 +1,11 @@
+/.editorconfig      export-ignore
+/.gitattributes     export-ignore
+/.github            export-ignore
+/.gitignore         export-ignore
+/.php-cs-fixer.dist.php export-ignore
+/CONTRIBUTING.md    export-ignore
+/Makefile           export-ignore
+/phpunit.xml.dist   export-ignore
+/psalm.xml          export-ignore
+/tests              export-ignore
+/tools              export-ignore
