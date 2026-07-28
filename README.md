@@ -1,5 +1,11 @@
 # PHPArkitect PHPUnit bridge
 
+> [!WARNING]
+> **This project is not ready for use.** It is an early draft of the extraction discussed in
+> [arkitect#661](https://github.com/phparkitect/arkitect/issues/661): nothing has been released,
+> the package is not on Packagist, and the public API — names, namespace, assertions — may still
+> change without notice. Please do not depend on it yet.
+
 [![Latest Stable Version](https://poser.pugx.org/phparkitect/phpunit-bridge/v)](https://packagist.org/packages/phparkitect/phpunit-bridge)
 [![Test](https://github.com/phparkitect/phpunit-bridge/actions/workflows/build.yml/badge.svg)](https://github.com/phparkitect/phpunit-bridge/actions/workflows/build.yml)
 [![License](https://poser.pugx.org/phparkitect/phpunit-bridge/license)](https://packagist.org/packages/phparkitect/phpunit-bridge)
