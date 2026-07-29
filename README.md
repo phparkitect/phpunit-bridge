@@ -3,48 +3,19 @@
 > [!WARNING]
 > **This project is not ready for use.** It is an early draft of the extraction discussed in
 > [arkitect#661](https://github.com/phparkitect/arkitect/issues/661): nothing has been released,
-> the package is not on Packagist, and the public API — names, namespace, assertions — may still
-> change without notice. Please do not depend on it yet.
+> the package is not on Packagist, and the public API may still change without notice.
 
 [![Latest Stable Version](https://poser.pugx.org/phparkitect/phpunit-bridge/v)](https://packagist.org/packages/phparkitect/phpunit-bridge)
 [![Test](https://github.com/phparkitect/phpunit-bridge/actions/workflows/build.yml/badge.svg)](https://github.com/phparkitect/phpunit-bridge/actions/workflows/build.yml)
 [![License](https://poser.pugx.org/phparkitect/phpunit-bridge/license)](https://packagist.org/packages/phparkitect/phpunit-bridge)
 
-Run [PHPArkitect](https://github.com/phparkitect/arkitect) architectural rules as PHPUnit assertions.
-
-PHPArkitect normally checks your architecture from the CLI, through a `phparkitect.php` config file.
-This package lets you do the same thing from inside your test suite instead: a broken architectural
-rule becomes a failing test, with the violations rendered in the failure message.
-
-```php
-final class ArchitectureTest extends TestCase
-{
-    use ArchRuleAsserts;
-
-    public function test_controllers_are_suffixed_properly(): void
-    {
-        $rule = Rule::allClasses()
-            ->that(new ResideInOneOfTheseNamespaces('App\Controller'))
-            ->should(new HaveNameMatching('*Controller'))
-            ->because('it makes the codebase easier to navigate');
-
-        self::assertArchRule($rule, ClassSet::fromDir(__DIR__.'/../src/Controller'));
-    }
-}
-```
-
-## Installation
+Check [PHPArkitect](https://github.com/phparkitect/arkitect) architectural rules from your test
+suite instead of from the CLI: a broken rule becomes a failing test, with the violations in the
+failure message.
 
 ```bash
 composer require --dev phparkitect/phpunit-bridge
 ```
-
-`phparkitect/phparkitect` and `phpunit/phpunit` are both real dependencies of this package, so
-Composer pulls in whatever it needs.
-
-## Usage
-
-Add the `ArchRuleAsserts` trait to a test class and call `assertArchRule()`. That is the whole API:
 
 ```php
 <?php
@@ -76,129 +47,54 @@ final class ArchitectureTest extends TestCase
 }
 ```
 
-| Assertion | Description |
-| --- | --- |
-| `assertArchRule(ArchRule $rule, ClassSet $classSet, string $message = '')` | Asserts that every class in the set satisfies the rule. |
+That is the whole API: `assertArchRule(ArchRule $rule, ClassSet $classSet, string $message = '')`.
+One rule per test method reads best — PHPUnit names the broken rule and still reports the ones that
+pass. `ArchRuleAsserts` is a trait rather than a base test case so it also works when the parent
+class is already taken, by `KernelTestCase` or your own.
 
-One rule per test method keeps the failures readable: PHPUnit names the broken rule for you, and
-the report tells you which rules still pass. Checking several rules in one method works too, it
-just collapses them into a single pass/fail.
+## Writing rules
 
-It is a trait and not a base test case so that it also works where the parent class is already
-taken — `KernelTestCase`, `WebTestCase`, or your own project base class:
+Rules, expressions and `ClassSet` all come from the core package, and its documentation is the
+reference:
 
-```php
-final class ArchitectureTest extends KernelTestCase
-{
-    use ArchRuleAsserts;
+- [Available rules](https://github.com/phparkitect/arkitect/blob/main/docs/rules.md)
+- [Writing custom rules](https://github.com/phparkitect/arkitect/blob/main/docs/custom-rules.md)
+- [Core concepts and CLI](https://github.com/phparkitect/arkitect#readme)
 
-    // ...
-}
-```
-
-### Under the hood
-
-`assertArchRule()` is a thin wrapper over `ArchRuleCheckerConstraintAdapter`, a plain PHPUnit
-constraint. It is part of the public API — it is the class this package was extracted from — so you
-can use it directly if you need to compose it with `assertThat()` or another constraint:
-
-```php
-self::assertThat($rule, new ArchRuleCheckerConstraintAdapter($classSet));
-```
-
-The constraint is stateful: it holds the violations collected while matching so it can render them
-in the failure message. Build a fresh one for every assertion.
-
-## Failure output
-
-Violations are printed grouped by class, using the same text formatting as the CLI:
-
-```
-App\Controller\ProductsController has 1 violations
-  should implement App\ContainerAwareInterface because i said so
-
-App\Controller\UserController has 1 violations
-  should implement App\ContainerAwareInterface because i said so
-```
-
-If a file in the class set cannot be parsed, the parsing errors are reported instead of the
-violations, since the analysis is incomplete:
-
-```
- parsing error:
-Syntax error, unexpected T_PUBLIC, expecting '{' on line 8 in file: BrokenService.php
-```
-
-## Choosing the target PHP version
-
-By default the analyzer parses your code using the PHP version that is running the tests. Pass a
-version explicitly when your test runner and your production runtime differ:
-
-```php
-new ArchRuleCheckerConstraintAdapter($classSet, '8.1');
-```
-
-Any version supported by PHPArkitect works; an unsupported one throws
-`Arkitect\Exceptions\PhpVersionNotValidException`.
+Anything you can express in a `phparkitect.php` config file works here unchanged. Baselines and the
+other CLI-only options do not — for those, keep using `vendor/bin/phparkitect check`.
 
 ## Compatibility
 
-| | Supported |
-| --- | --- |
-| PHP | 8.0 – 8.5 |
-| PHPUnit | 9.6, 10, 11, 12 |
-| PHPArkitect | ^1.0 |
-
-Every combination in that matrix is exercised in CI.
-
-## Relation to the PHPArkitect CLI
-
-The bridge and the CLI are two front-ends over the same analysis engine, and they are not
-mutually exclusive:
-
-- The **CLI** (`vendor/bin/phparkitect check`) reads `phparkitect.php`, supports baselines,
-  multiple output formats and `--stop-on-failure`. It is the right tool for a dedicated CI step.
-- The **bridge** puts the rules next to your other tests, so architecture is checked by the same
-  `phpunit` command as everything else. Baselines and the other CLI-only options are not available
-  here.
-
-Pick whichever fits your workflow; some projects run both.
+PHP 8.0–8.5, PHPUnit 9.6/10/11/12, PHPArkitect `^1.0`. Every combination is exercised in CI.
 
 ## Migrating from `Arkitect\PHPUnit` in the core package
 
-This package keeps the original `Arkitect\PHPUnit\ArchRuleCheckerConstraintAdapter` class name and
-namespace, so migrating is just a matter of requiring the package — no `use` statement changes:
+The class name and namespace are unchanged, so migrating means requiring this package — no `use`
+statement changes. `ArchRuleCheckerConstraintAdapter` gains one optional constructor argument, the
+target PHP version to parse your code with, defaulting to the previous behaviour.
 
-```bash
-composer require --dev phparkitect/phpunit-bridge
+<details>
+<summary>During the transition you may see an "Ambiguous class resolution" warning</summary>
+
+PHPArkitect `^1.0` still ships its own copy of the class, so while both are installed
+`composer dump-autoload --optimize` warns about it. It is harmless — the classes are equivalent and
+Composer picks one — and you can silence it by ignoring the core copy in your `composer.json`:
+
+```json
+{
+    "autoload-dev": {
+        "exclude-from-classmap": ["/vendor/phparkitect/phparkitect/src/PHPUnit/"]
+    }
+}
 ```
 
-The only addition to the constraint is the optional second constructor argument for the target PHP
-version, which defaults to the previous behaviour.
-
-> **During the transition:** PHPArkitect `^1.0` still ships its own copy of the class. While both
-> are installed, `composer dump-autoload --optimize` reports an *"Ambiguous class resolution"*
-> warning. It is harmless — the two classes are equivalent and Composer picks one — but you can
-> silence it by ignoring the core copy in your own `composer.json`:
->
-> ```json
-> {
->     "autoload-dev": {
->         "exclude-from-classmap": ["/vendor/phparkitect/phparkitect/src/PHPUnit/"]
->     }
-> }
-> ```
->
-> Once the core package drops the class, the warning goes away on its own and this snippet can be
-> removed.
+Once the core package drops the class the warning goes away on its own.
+</details>
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). The whole build is one command:
-
-```bash
-make build
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md); `make build` runs everything.
 
 ## License
 
