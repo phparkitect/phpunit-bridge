@@ -19,9 +19,13 @@ trait ArchRuleAsserts
 {
     /**
      * Asserts that every class in $classSet satisfies $rule.
+     *
+     * There is deliberately no $message argument: an ArchRule cannot be built without
+     * because(), so the reason is already part of the failure message. Anyone who really
+     * needs to prepend something can call assertThat() with the constraint directly.
      */
-    public static function assertArchRule(ArchRule $rule, ClassSet $classSet, string $message = ''): void
+    public static function assertArchRule(ArchRule $rule, ClassSet $classSet): void
     {
-        Assert::assertThat($rule, new ArchRuleCheckerConstraintAdapter($classSet), $message);
+        Assert::assertThat($rule, new ArchRuleCheckerConstraintAdapter($classSet));
     }
 }

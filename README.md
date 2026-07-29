@@ -47,10 +47,11 @@ final class ArchitectureTest extends TestCase
 }
 ```
 
-That is the whole API: `assertArchRule(ArchRule $rule, ClassSet $classSet, string $message = '')`.
-One rule per test method reads best — PHPUnit names the broken rule and still reports the ones that
-pass. `ArchRuleAsserts` is a trait rather than a base test case so it also works when the parent
-class is already taken, by `KernelTestCase` or your own.
+That is the whole API: `assertArchRule(ArchRule $rule, ClassSet $classSet)`. There is no message
+argument, because a rule cannot be built without `because()` — the reason is already in the failure
+output. One rule per test method reads best: PHPUnit names the broken rule and still reports the
+ones that pass. `ArchRuleAsserts` is a trait rather than a base test case so it also works when the
+parent class is already taken, by `KernelTestCase` or your own.
 
 ## Writing rules
 

@@ -31,12 +31,12 @@ class ArchRuleAssertsTest extends TestCase
         self::assertArchRule(self::violatedRule(), self::mvcClassSet());
     }
 
-    public function test_it_prepends_the_custom_message_to_the_failure(): void
+    public function test_it_reports_the_reason_given_to_because(): void
     {
         $this->expectException(ExpectationFailedException::class);
-        $this->expectExceptionMessage('controllers must be container aware');
+        $this->expectExceptionMessage('because i said so');
 
-        self::assertArchRule(self::violatedRule(), self::mvcClassSet(), 'controllers must be container aware');
+        self::assertArchRule(self::violatedRule(), self::mvcClassSet());
     }
 
     private static function mvcClassSet(): ClassSet
