@@ -17,8 +17,10 @@ This package lets you do the same thing from inside your test suite instead: a b
 rule becomes a failing test, with the violations rendered in the failure message.
 
 ```php
-final class ArchitectureTest extends ArchRuleTestCase
+final class ArchitectureTest extends TestCase
 {
+    use ArchRuleAsserts;
+
     public function test_controllers_are_suffixed_properly(): void
     {
         $rule = Rule::allClasses()
@@ -42,12 +44,7 @@ Composer pulls in whatever it needs.
 
 ## Usage
 
-There are three ways to use the bridge, in increasing order of control.
-
-### 1. Extend `ArchRuleTestCase`
-
-The shortest path. `ArchRuleTestCase` extends PHPUnit's `TestCase` and adds the architectural
-assertions:
+Add the `ArchRuleAsserts` trait to a test class and call `assertArchRule()`. That is the whole API:
 
 ```php
 <?php
@@ -59,11 +56,14 @@ namespace App\Tests;
 use Arkitect\ClassSet;
 use Arkitect\Expression\ForClasses\NotHaveDependencyOutsideNamespace;
 use Arkitect\Expression\ForClasses\ResideInOneOfTheseNamespaces;
-use Arkitect\PHPUnit\ArchRuleTestCase;
+use Arkitect\PHPUnit\ArchRuleAsserts;
 use Arkitect\Rules\Rule;
+use PHPUnit\Framework\TestCase;
 
-final class ArchitectureTest extends ArchRuleTestCase
+final class ArchitectureTest extends TestCase
 {
+    use ArchRuleAsserts;
+
     public function test_the_domain_does_not_depend_on_the_framework(): void
     {
         $rule = Rule::allClasses()
@@ -76,64 +76,38 @@ final class ArchitectureTest extends ArchRuleTestCase
 }
 ```
 
-### 2. Use the `ArchRuleAsserts` trait
-
-If your tests already extend a base class of your own, pull the assertions in with the trait:
-
-```php
-final class ArchitectureTest extends MyProjectTestCase
-{
-    use ArchRuleAsserts;
-
-    public function test_controllers_are_suffixed_properly(): void
-    {
-        self::assertArchRule($rule, ClassSet::fromDir(__DIR__.'/../src'));
-    }
-}
-```
-
-Both entry points expose the same two assertions:
-
 | Assertion | Description |
 | --- | --- |
 | `assertArchRule(ArchRule $rule, ClassSet $classSet, string $message = '')` | Asserts that every class in the set satisfies the rule. |
-| `assertArchRules(array $rules, ClassSet $classSet, string $message = '')` | Asserts a list of rules against the same set, failing on the first one that is violated. |
 
-Checking several rules against one class set is the common case, and `assertArchRules` keeps it to a
-single assertion:
+One rule per test method keeps the failures readable: PHPUnit names the broken rule for you, and
+the report tells you which rules still pass. Checking several rules in one method works too, it
+just collapses them into a single pass/fail.
+
+It is a trait and not a base test case so that it also works where the parent class is already
+taken — `KernelTestCase`, `WebTestCase`, or your own project base class:
 
 ```php
-public function test_the_layers_are_respected(): void
+final class ArchitectureTest extends KernelTestCase
 {
-    self::assertArchRules(
-        [
-            Rule::allClasses()
-                ->that(new ResideInOneOfTheseNamespaces('App\Domain'))
-                ->should(new NotHaveDependencyOutsideNamespace('App\Domain'))
-                ->because('the domain must stay framework agnostic'),
-            Rule::allClasses()
-                ->that(new ResideInOneOfTheseNamespaces('App\Controller'))
-                ->should(new HaveNameMatching('*Controller'))
-                ->because('it makes the codebase easier to navigate'),
-        ],
-        ClassSet::fromDir(__DIR__.'/../src')
-    );
+    use ArchRuleAsserts;
+
+    // ...
 }
 ```
 
-### 3. Use the constraint directly
+### Under the hood
 
-`ArchRuleCheckerConstraintAdapter` is a plain PHPUnit constraint, so it composes with
-`assertThat()` and anything else that takes a `Constraint`:
+`assertArchRule()` is a thin wrapper over `ArchRuleCheckerConstraintAdapter`, a plain PHPUnit
+constraint. It is part of the public API — it is the class this package was extracted from — so you
+can use it directly if you need to compose it with `assertThat()` or another constraint:
 
 ```php
-use Arkitect\PHPUnit\ArchRuleCheckerConstraintAdapter;
-
 self::assertThat($rule, new ArchRuleCheckerConstraintAdapter($classSet));
 ```
 
-The constraint is stateful — it holds the violations collected while matching so it can render
-them in the failure message. Build a fresh one for every assertion.
+The constraint is stateful: it holds the violations collected while matching so it can render them
+in the failure message. Build a fresh one for every assertion.
 
 ## Failure output
 
