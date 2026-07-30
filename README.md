@@ -65,6 +65,18 @@ reference:
 Anything you can express in a `phparkitect.php` config file works here unchanged. Baselines and the
 other CLI-only options do not — for those, keep using `vendor/bin/phparkitect check`.
 
+## Performance
+
+Every assertion parses the class set from scratch, so the cost grows linearly with the number of
+rules: one pass over ~600 files takes about 2 seconds, so ten rules cost about 20. The CLI does not
+work this way — it parses each file once and then checks every rule against it, which makes extra
+rules essentially free.
+
+Keep your class sets narrow (`ClassSet::fromDir(__DIR__.'/../src/Domain')` rather than the whole
+`src/`), and reach for the CLI when you have many rules over a large codebase. Removing this
+difference means teaching the core analyzer to reuse parsed files across runs, which belongs in
+`phparkitect/phparkitect` rather than here.
+
 ## Compatibility
 
 PHP 8.0–8.5, PHPUnit 9.6/10/11/12, PHPArkitect `^1.0`. Every combination is exercised in CI.
